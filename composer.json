@@ -1,0 +1,37 @@
+{
+  "name": "phpone/canal_php",
+  "description": "canal php client",
+  "type": "",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "gaozhi",
+      "email": "1035948193@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.2",
+    "ext-swoole": ">=4.5",
+    "google/protobuf": "^3.13",
+    "symfony/console": "^5.1",
+    "vlucas/phpdotenv": "^5.1"
+  },
+  "require-dev": {
+    "swoole/ide-helper": "^4.5",
+    "friendsofphp/php-cs-fixer": "^2.14"
+  },
+  "autoload": {
+    "psr-4": {
+      "PhpOne\\CanalPHP\\": "src"
+    },
+    "classmap": [
+      {
+        "GPBMetadata\\": "src/Protocol/GPBMetadata",
+        "Com\\Alibaba\\Otter\\Canal\\Protocol": "src/Protocol/Com/Alibaba/Otter/Canal/Protocol"
+      }
+    ]
+  },
+  "scripts": {
+    "pre-autoload-dump":
+  }
+}
