@@ -14,7 +14,7 @@ interface Connector
     public function subscribe(string $filter);
     public function checkValid();
     public function unsubscribe();
-    public function get();
+    public function get(int $batchSize);
     public function getWithoutAck(int $batchSize);
     public function ack($batchId);
     public function rollback();

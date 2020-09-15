@@ -14,52 +14,58 @@ class CanalClient
 {
     use PacketUtil;
 
+    /**
+     * @throws \Exception
+     */
     public function start()
     {
-        $this->echo();
-
-        $connector = ConnectorFactory::getSimpleConnector("127.0.0.1", "11111", "example");
+        $connector = ConnectorFactory::getSimpleConnector(
+            Config::get("canal.server.address"), Config::get("canal.server.port"), Config::get("canal.server.destination"),
+            Config::get("canal.server.username"), Config::get("canal.server.password"));
         try {
             $connector->connect();
-            $connector->subscribe("test.student");
+            // 订阅表
+            $connector->subscribe(Config::get("canal.server.filter"));
+            $connector->rollback();
 
-            $emptyTotal = 100;
             $currentEmpty = 0;
-
-            while ($currentEmpty < $emptyTotal) {
-                echo "while". PHP_EOL;
-                $message = $connector->getWithoutAck(100);
+            while ($currentEmpty < Config::get("canal.maxWhileCount")) {
+                $message = $connector->getWithoutAck(Config::get("canal.batchSize"));
                 $batchId = $message->getId();
                 if ($batchId > 0) {
-                    echo "while-newmsg". PHP_EOL;
-
                     $currentEmpty = 0;
+                    if (Config::get("canal.openMessagePrint")) {
+                        $this->printEntry($message->getEntries());
+                    }
 
-                    $this->printEntry($message->getEntries());
+                    if (Config::get("canal.messageCallback")) {
+                        [$class, $func] = Config::get("canal.messageCallback");
+                        if (class_exists($class)) {
+                            call_user_func_array([$class, $func], $message->getEntries());
+                        }
+                    }
 
-
-
-
+                    $connector->ack($batchId);
                 } else {
 
-                    echo "while-else". PHP_EOL;
+                    echo "no-message". PHP_EOL;
 
                     $currentEmpty++;
 
                     sleep(1);
                 }
-//                $connector->ack($batchId);
-
-
             }
         } catch (\Exception $e) {
-            echo "err". $e->getMessage(). PHP_EOL;
+            throw new \Exception($e);
         } finally {
             $connector->disconnect();
         }
 
     }
 
+    /**
+     * @param $entries
+     */
     public function printEntry($entries)
     {
 
@@ -109,6 +115,9 @@ class CanalClient
 
     }
 
+    /**
+     * @param $columns
+     */
     public function printColumn($columns)
     {
         /**@var Column $column*/

@@ -8,12 +8,17 @@ use Com\Alibaba\Otter\Canal\Protocol\Messages;
 use Com\Alibaba\Otter\Canal\Protocol\PacketType;
 use Google\Protobuf\Internal\Message;
 use PhpOne\CanalPHP\ClientIdentity;
+use PhpOne\CanalPHP\Config;
 use PhpOne\CanalPHP\Constants;
 use PhpOne\CanalPHP\PacketUtil;
 use \Swoole\Client;
 use PhpOne\CanalPHP\Connector\Connector;
 use Symfony\Component\String\ByteString;
 
+/**
+ * Class SimpleConnector
+ * @package PhpOne\CanalPHP\Connector\impl
+ */
 class SimpleConnector implements Connector
 {
     use PacketUtil;
@@ -27,8 +32,15 @@ class SimpleConnector implements Connector
     protected $clientIdentity;
     protected $connected;
 
-
-    public function __construct(string $address, string $port, string $destination, string $username, String $password)
+    /**
+     * SimpleConnector constructor.
+     * @param string $address
+     * @param int $port
+     * @param string $destination
+     * @param string $username
+     * @param String $password
+     */
+    public function __construct(string $address, int $port, string $destination, string $username, String $password)
     {
         $this->client = new Client(SWOOLE_SOCK_TCP);
         $this->address = $address;
@@ -37,7 +49,7 @@ class SimpleConnector implements Connector
         $this->password = $password;
         $this->destination = $destination;
 
-        $this->clientIdentity = new ClientIdentity($destination, Constants::DEFAULT_CLIENT_ID);
+        $this->clientIdentity = new ClientIdentity($destination, Config::get("canal.server.clientId"));
 
         $this->_setClientConfig();
 
@@ -48,7 +60,7 @@ class SimpleConnector implements Connector
     {
         $connected = $this->client->connect($this->address, $this->port);
         if (!$connected) {
-            throw new \Exception("connect server error: ". $this->client->errCode);
+            throw new \Exception("connect server error: ". $this->client->errCode. " msg: ");
         }
 
         $this->doConnect();
@@ -64,6 +76,10 @@ class SimpleConnector implements Connector
         ]);
     }
 
+    /**
+     * @param string $filter
+     * @throws \Exception
+     */
     public function subscribe(string $filter)
     {
         $sub = $this->newSub()
@@ -103,9 +119,14 @@ class SimpleConnector implements Connector
 
     }
 
+    /**
+     * @param int $batchSize
+     * @return \PhpOne\CanalPHP\Message
+     * @throws \Exception
+     */
     public function getWithoutAck(int $batchSize)
     {
-        echo "getWithoutAck msg". PHP_EOL;
+        echo "getWithoutAck msg". $batchSize. PHP_EOL;
 
         $get = $this->newGet()
             ->setDestination($this->clientIdentity->getDestination())
@@ -121,34 +142,25 @@ class SimpleConnector implements Connector
         return $this->receiveMessages();
     }
 
+    /**
+     * @return \PhpOne\CanalPHP\Message
+     * @throws \Exception
+     */
     private function receiveMessages()
     {
-        echo "receive msg". PHP_EOL;
         $receivePacket = $this->body2Packet($this->readNextPacket());
-
         $message = new \PhpOne\CanalPHP\Message();
+
         switch ($receivePacket->getType()) {
             case PacketType::MESSAGES:
-
-                echo "new-message". PHP_EOL;
-
                 $messages = $this->body2Messages($receivePacket->getBody());
-
-                print_r($messages->getBatchId());
-                echo "batchId". PHP_EOL;
-
                 if ($messages->getBatchId() > 0) {
                     $message->setId($messages->getBatchId());
 
                     foreach ($messages->getMessages()->getIterator() as $messageBody) {
-//                        $byteString = $this->string2ByteString($messageBody)
-//                            ->toByteString()->toString();
                         $entry = $this->body2Entry($messageBody);
                         $message->addEntry($entry);
                     }
-
-                    print_r($message->count());
-                    echo "messsageCount". PHP_EOL;
 
                     return $message;
                 }
@@ -166,14 +178,21 @@ class SimpleConnector implements Connector
 
     }
 
-    public function get()
+    /**
+     * @param int $batchSize
+     * @return \PhpOne\CanalPHP\Message
+     * @throws \Exception
+     */
+    public function get(int $batchSize)
     {
+        $messages = $this->getWithoutAck($batchSize);
+        $this->ack($messages->getId());
 
+        return $messages;
     }
 
     protected function doConnect()
     {
-        // handshake
         $packet = $this->body2Packet($this->readNextPacket());
         if ($packet->getType() != PacketType::HANDSHAKE) {
             throw new \Exception("packet type err value: ". $packet->getType());
@@ -192,8 +211,6 @@ class SimpleConnector implements Connector
         $sendPacket = $this->newPacket(PacketType::CLIENTAUTHENTICATION)
             ->setBody($clientAuth->serializeToString());
         $this->client->send($this->bodyWithHeader($sendPacket->serializeToString()));
-
-        echo "send auth ". PHP_EOL;
 
         // ack
         $packet = $this->body2Packet($this->readNextPacket());
@@ -222,21 +239,49 @@ class SimpleConnector implements Connector
 
     }
 
+    /**
+     *
+     */
     public function disconnect()
     {
         @$this->client->close();
     }
 
+    /**
+     *
+     */
     public function unsubscribe()
     {
+        $sub = $this->newSub()
+            ->setClientId($this->clientIdentity->getClientId())
+            ->setDestination($this->clientIdentity->getDestination())
+            ->setFilter($this->clientIdentity->getFilter());
 
+        $packet = $this->newPacket(PacketType::UNSUBSCRIPTION)
+            ->setBody($sub->serializeToString());
+
+        $this->client->send($this->bodyWithHeader($packet));
     }
 
-    public function rollback()
+    /**
+     * @param int $batchId
+     */
+    public function rollback($batchId = 0)
     {
-        // TODO: Implement rollback() method.
+        $clientRollback = $this->newClientRollback()
+            ->setBatchId($batchId)
+            ->setDestination($this->clientIdentity->getDestination())
+            ->setClientId($this->clientIdentity->getClientId());
+        $packet = $this->newPacket(PacketType::CLIENTROLLBACK)
+            ->setBody($clientRollback->serializeToString());
+
+        $this->client->send($this->bodyWithHeader($packet->serializeToString()));
     }
 
+    /**
+     * @param $body
+     * @return string
+     */
     public function bodyWithHeader($body)
     {
         return pack("N", strlen($body)). $body;

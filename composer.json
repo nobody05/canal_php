@@ -13,7 +13,6 @@
     "php": ">=7.2",
     "ext-swoole": ">=4.5",
     "google/protobuf": "^3.13",
-    "symfony/console": "^5.1",
     "vlucas/phpdotenv": "^5.1"
   },
   "require-dev": {
@@ -27,11 +26,9 @@
     "classmap": [
       {
         "GPBMetadata\\": "src/Protocol/GPBMetadata",
-        "Com\\Alibaba\\Otter\\Canal\\Protocol": "src/Protocol/Com/Alibaba/Otter/Canal/Protocol"
+        "Com\\Alibaba\\Otter\\Canal\\Protocol": "src/Protocol/Com/Alibaba/Otter/Canal/Protocol",
+        "PhpOne\\CanalPHP\\Test\\": "test"
       }
     ]
-  },
-  "scripts": {
-    "pre-autoload-dump":
   }
 }

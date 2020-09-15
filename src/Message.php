@@ -4,8 +4,18 @@
 namespace PhpOne\CanalPHP;
 
 
+use Com\Alibaba\Otter\Canal\Protocol\Entry;
+use Com\Alibaba\Otter\Canal\Protocol\EntryType;
+use Com\Alibaba\Otter\Canal\Protocol\EventType;
+
+/**
+ * Class Message
+ * @package PhpOne\CanalPHP
+ */
 class Message
 {
+    use PacketUtil;
+
     protected $id = 0;
     protected $entries;
 
@@ -41,11 +51,32 @@ class Message
     }
 
     /**
+     * 把protocol对象返回
      * @return mixed
+     * @throws
      */
     public function getEntries()
     {
-        return $this->entries;
+        $result = [];
+        foreach ($this->entries as $entry) {
+            /**@var Entry $entry */
+            $entryType = $entry->getEntryType();
+            if ($entryType == EntryType::TRANSACTIONBEGIN || $entryType == EntryType::TRANSACTIONEND) {
+                continue;
+            }
+            $rowChange = $this->value2RowChange($entry->getStoreValue());
+
+            $result[] = [
+                'tableName' => $entry->getHeader()->getTableName(),
+                'eventType' => $rowChange->getEventType(),
+                'eventTypeName' => EventType::name($rowChange->getEventType()),
+                'rowDatas' => $rowChange->getRowDatas(),
+                'entry' => $entry,
+                'rowChange' => $rowChange,
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -55,8 +86,6 @@ class Message
     {
         $this->entries = $entries;
     }
-
-
 
 
 }
