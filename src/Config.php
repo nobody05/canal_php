@@ -37,8 +37,6 @@ class Config
         self::$configEnvFilePath = CANAL_CONFIG_DIR . DIRECTORY_SEPARATOR . self::$configFileName
             . self::CONFIG_FILE_EXT;
 
-        print_r(self::$configGlobalFilePath);
-
         if (! is_file(self::$configGlobalFilePath) && ! is_file(self::$configEnvFilePath)) {
             return null;
         }

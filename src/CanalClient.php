@@ -21,7 +21,7 @@ class CanalClient
     {
         $connector = ConnectorFactory::getSimpleConnector(
             Config::get("canal.server.address"), Config::get("canal.server.port"), Config::get("canal.server.destination"),
-            Config::get("canal.server.username"), Config::get("canal.server.password"));
+            (string) Config::get("canal.server.username"), (string) Config::get("canal.server.password"));
         try {
             $connector->connect();
             // 订阅表

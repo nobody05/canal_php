@@ -3,17 +3,13 @@
 
 namespace PhpOne\CanalPHP\Connector\impl;
 
-use Com\Alibaba\Otter\Canal\Protocol\Ack;
-use Com\Alibaba\Otter\Canal\Protocol\Messages;
 use Com\Alibaba\Otter\Canal\Protocol\PacketType;
-use Google\Protobuf\Internal\Message;
 use PhpOne\CanalPHP\ClientIdentity;
 use PhpOne\CanalPHP\Config;
 use PhpOne\CanalPHP\Constants;
 use PhpOne\CanalPHP\PacketUtil;
 use \Swoole\Client;
 use PhpOne\CanalPHP\Connector\Connector;
-use Symfony\Component\String\ByteString;
 
 /**
  * Class SimpleConnector
@@ -40,7 +36,7 @@ class SimpleConnector implements Connector
      * @param string $username
      * @param String $password
      */
-    public function __construct(string $address, int $port, string $destination, string $username, String $password)
+    public function __construct(string $address, int $port, string $destination, string $username = "", String $password = "")
     {
         $this->client = new Client(SWOOLE_SOCK_TCP);
         $this->address = $address;
@@ -126,8 +122,6 @@ class SimpleConnector implements Connector
      */
     public function getWithoutAck(int $batchSize)
     {
-        echo "getWithoutAck msg". $batchSize. PHP_EOL;
-
         $get = $this->newGet()
             ->setDestination($this->clientIdentity->getDestination())
             ->setClientId($this->clientIdentity->getClientId())
