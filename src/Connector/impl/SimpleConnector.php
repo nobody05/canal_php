@@ -6,7 +6,7 @@ namespace PhpOne\CanalPHP\Connector\impl;
 use Com\Alibaba\Otter\Canal\Protocol\PacketType;
 use PhpOne\CanalPHP\ClientIdentity;
 use PhpOne\CanalPHP\Config;
-use PhpOne\CanalPHP\Constants;
+use PhpOne\CanalPHP\Exception\CanalClientException;
 use PhpOne\CanalPHP\PacketUtil;
 use \Swoole\Client;
 use PhpOne\CanalPHP\Connector\Connector;
@@ -53,11 +53,14 @@ class SimpleConnector implements Connector
         register_shutdown_function([$this, 'disconnect']);
     }
 
+    /**
+     * @throws CanalClientException
+     */
     public function connect()
     {
         $connected = $this->client->connect($this->address, $this->port);
         if (!$connected) {
-            throw new \Exception("connect server error: ". $this->client->errCode. " msg: ");
+            throw new CanalClientException("connect server error: ". swoole_last_error(), $this->client->errCode);
         }
 
         $this->doConnect();
@@ -158,10 +161,10 @@ class SimpleConnector implements Connector
                 break;
             case PacketType::ACK:
                 $ack = $this->body2Ack($receivePacket->getBody());
-                if ($ack->getErrorCode()) throw new \Exception("receive message err ". $ack->getErrorMessage(), $ack->getErrorCode());
+                if ($ack->getErrorCode()) throw new CanalClientException("receive message err ". $ack->getErrorMessage(), $ack->getErrorCode());
                 break;
             default:
-                throw new \Exception("receive message got unknow packetType ");
+                throw new CanalClientException("receive message got unknow packetType ");
         }
 
         return $message;
@@ -181,11 +184,14 @@ class SimpleConnector implements Connector
         return $messages;
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function doConnect()
     {
         $packet = $this->body2Packet($this->readNextPacket());
         if ($packet->getType() != PacketType::HANDSHAKE) {
-            throw new \Exception("packet type err value: ". $packet->getType());
+            throw new CanalClientException("packet type err value: ". $packet->getType());
         }
 
         // @TODO
@@ -205,11 +211,11 @@ class SimpleConnector implements Connector
         // ack
         $packet = $this->body2Packet($this->readNextPacket());
         if ($packet->getType() != PacketType::ACK) {
-            throw new \Exception("packet type err value: ". $packet->getType());
+            throw new CanalClientException("packet type err value: ". $packet->getType());
         }
         $ack = $this->body2Ack($packet->getBody());
         if ($ack->getErrorCode()) {
-            throw new \Exception("server Ack error ". $ack->getErrorMessage(), $ack->getErrorCode());
+            throw new CanalClientException("server Ack error ". $ack->getErrorMessage(), $ack->getErrorCode());
         }
 
         $this->connected = true;

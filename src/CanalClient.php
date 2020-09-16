@@ -9,6 +9,7 @@ use Com\Alibaba\Otter\Canal\Protocol\Entry;
 use Com\Alibaba\Otter\Canal\Protocol\EntryType;
 use Com\Alibaba\Otter\Canal\Protocol\EventType;
 use Com\Alibaba\Otter\Canal\Protocol\RowData;
+use PhpOne\CanalPHP\Exception\CanalClientException;
 
 class CanalClient
 {
@@ -57,7 +58,7 @@ class CanalClient
                 }
             }
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            throw new CanalClientException($e);
         } finally {
             $connector->disconnect();
         }
@@ -66,6 +67,7 @@ class CanalClient
 
     /**
      * @param $entries
+     * @throws \Exception
      */
     public function printEntry($entries)
     {
