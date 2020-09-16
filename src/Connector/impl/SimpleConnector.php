@@ -65,12 +65,7 @@ class SimpleConnector implements Connector
 
     private function _setClientConfig()
     {
-        $this->client->set([
-            'open_length_check' => 1, // 是否开启包长度检测
-            "package_length_offset" => 0, // 从哪个字节开始算包长，如果总长度包含包头，就从0开始
-            "package_body_offset" => Constants::TCP_HEADER_LEN, // 哪个字节的值代表包体长度
-            'package_length_type' => 'N' // 解包方式  N 代表32位  参考pack unpack函数
-        ]);
+        $this->client->set(Config::get("canal.client"));
     }
 
     /**

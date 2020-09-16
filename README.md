@@ -9,7 +9,7 @@ composer require phpone/canal_php
 
 ## 使用
 - config/canal.php 文件复制到项目目录，并修改自己的配置
-- test/bin/start.php 文件复制到项目目录
+- test/bin/start.php 文件复制到项目目录, 请根据项目目录层级注意修改start.php的相应目录 BASE_DIR、CONFIG_DIR
 
 ## 启动
 ```shell
@@ -39,11 +39,12 @@ return [
     "batchSize" => 100,
     // 空循环次数
     "maxWhileCount" => 100,
-    // 是否打印message 开启后将输出到console
+    // 是否打印message 开启后消息将输出到console
     "openMessagePrint" => true,
     // 业务处理逻辑写到这里 参考test目录即可
     "messageCallback" => [\PhpOne\CanalPHP\Test\MessageHandle::class, "handle"],
-    // 处理tcp粘包 参照swoole配置  https://wiki.swoole.com/#/learn?id=tcp%e7%b2%98%e5%8c%85%e9%97%ae%e9%a2%98
+    // 处理tcp粘包 参照swoole配置  
+    // https://wiki.swoole.com/#/learn?id=tcp%e7%b2%98%e5%8c%85%e9%97%ae%e9%a2%98
     "client" => [
         'open_length_check' => 1, // 是否开启包长度检测
         "package_length_offset" => 0, // 从哪个字节开始算包长，如果总长度包含包头，就从0开始
@@ -53,6 +54,19 @@ return [
 ];
 
 ```
+
+## 目录说明
+- config 项目配置文件，自定义即可
+- src
+  - CanalClient 处理脚本
+  - ClientIdentity 客户端类
+  - Config 读取config/目录中的配置
+  - Message 接收消息列表
+  - PacketUtil 工具包
+- test 测试
+  - bin 启动脚本
+  - MessageHandler 业务处理逻辑，自定义即可
+
 ## 处理逻辑
 
 主要处理流程根据java版的canal_client参考来完成，其实就是c/s完成tcp数据传输的过程，我们需要了解
@@ -65,6 +79,7 @@ return [
 ## 参考项目
 - java client : https://github.com/alibaba/canal/tree/master/client
 - php client: https://github.com/xingwenge/canal-php
+- swoole client : https://wiki.swoole.com/#/learn?id=tcp%e7%b2%98%e5%8c%85%e9%97%ae%e9%a2%98
 
 
 
