@@ -5,8 +5,10 @@ namespace PhpOne\CanalPHP\Test;
 class MessageHandle
 {
 
-    public function handle($messages)
+    public static function handle($messages = [])
     {
-        echo "receive". count($messages). PHP_EOL;
+        foreach ($messages as $message) {
+            echo "tableName: ". $message['tableName']. "  event:  ". $message['eventTypeName'];
+        }
     }
 }

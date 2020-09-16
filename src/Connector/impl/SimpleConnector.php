@@ -10,6 +10,7 @@ use PhpOne\CanalPHP\Constants;
 use PhpOne\CanalPHP\PacketUtil;
 use \Swoole\Client;
 use PhpOne\CanalPHP\Connector\Connector;
+use \PhpOne\CanalPHP\Message;
 
 /**
  * Class SimpleConnector
@@ -143,7 +144,7 @@ class SimpleConnector implements Connector
     private function receiveMessages()
     {
         $receivePacket = $this->body2Packet($this->readNextPacket());
-        $message = new \PhpOne\CanalPHP\Message();
+        $message = new Message();
 
         switch ($receivePacket->getType()) {
             case PacketType::MESSAGES:

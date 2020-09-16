@@ -34,15 +34,16 @@ class CanalClient
                 $batchId = $message->getId();
                 if ($batchId > 0) {
                     $currentEmpty = 0;
-                    if (Config::get("canal.openMessagePrint")) {
-                        $this->printEntry($message->getEntries());
-                    }
 
                     if (Config::get("canal.messageCallback")) {
                         [$class, $func] = Config::get("canal.messageCallback");
                         if (class_exists($class)) {
-                            call_user_func_array([$class, $func], $message->getEntries());
+                            call_user_func_array([$class, $func], [$message->getEntries()]);
                         }
+                    }
+
+                    if (Config::get("canal.openMessagePrint")) {
+                        $this->printEntry($message->getEntriesOri());
                     }
 
                     $connector->ack($batchId);
@@ -68,12 +69,9 @@ class CanalClient
      */
     public function printEntry($entries)
     {
-
         foreach ($entries as $entry) {
             /**@var Entry $entry */
             $entryType = $entry->getEntryType();
-            print_r($entryType);
-            echo "entryType". PHP_EOL;
 
             if ($entryType == EntryType::TRANSACTIONBEGIN || $entryType == EntryType::TRANSACTIONEND) {
                 continue;
@@ -82,13 +80,13 @@ class CanalClient
             $rowChange = $this->value2RowChange($entry->getStoreValue());
             $eventType = $rowChange->getEventType();
 
-            echo sprintf("eventType: %s", $eventType). PHP_EOL;
 
+            echo sprintf("eventType: %s", $eventType). PHP_EOL;
 
             foreach ($rowChange->getRowDatas() as $rowData) {
                 /**@var RowData $rowData*/
                 if ($eventType == EventType::INSERT) {
-                    echo "Insert new Record". PHP_EOL;
+                    echo "Insert Record". PHP_EOL;
                     $this->printColumn($rowData->getAfterColumns());
                 } elseif ($eventType == EventType::DELETE) {
                     echo "Delete Record". PHP_EOL;
@@ -96,10 +94,10 @@ class CanalClient
                 } elseif ($eventType == EventType::UPDATE) {
                     echo "update column". PHP_EOL;
 
-                    echo "before update data". PHP_EOL;
+                    echo "before update". PHP_EOL;
                     $this->printColumn($rowData->getBeforeColumns());
 
-                    echo "after update data". PHP_EOL;
+                    echo "after update". PHP_EOL;
                     $this->printColumn($rowData->getAfterColumns());
 
                 } else {
@@ -122,7 +120,7 @@ class CanalClient
     {
         /**@var Column $column*/
         foreach ($columns as $column) {
-            echo sprintf("Column name : %s value: %s update: %s", $column->getName(), $column->getValue(), $column->getUpdated());
+            echo sprintf("column : %s, value: %s, isUpdated: %d", $column->getName(), $column->getValue(), $column->getUpdated()). PHP_EOL;
         }
 
     }

@@ -79,6 +79,11 @@ class Message
         return $result;
     }
 
+    public function getEntriesOri()
+    {
+        return $this->entries;
+    }
+
     /**
      * @param mixed $entries
      */

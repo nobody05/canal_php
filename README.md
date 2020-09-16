@@ -41,7 +41,7 @@ return [
     "maxWhileCount" => 100,
     // 是否打印message 开启后将输出到console
     "openMessagePrint" => true,
-    // 业务处理逻辑写到这里
+    // 业务处理逻辑写到这里 参考test目录即可
     "messageCallback" => [\PhpOne\CanalPHP\Test\MessageHandle::class, "handle"],
     // 处理tcp粘包 参照swoole配置  https://wiki.swoole.com/#/learn?id=tcp%e7%b2%98%e5%8c%85%e9%97%ae%e9%a2%98
     "client" => [
@@ -54,11 +54,17 @@ return [
 
 ```
 ## 处理逻辑
-主要处理流程根据java版的canal_client参考来完成，其实就是c/s完成tcp数据传输的过程，我们需要了解protocolBuf的基本使用，
-重点是canalServer中netty对于tcp的包处理，固定包头+包体，以便于我们client接收到之后进行数据处理。
 
-client->protocol->tcp->server->tcp->protocol->client
+主要处理流程根据java版的canal_client参考来完成，其实就是c/s完成tcp数据传输的过程，我们需要了解
 
+- protocolBuf的基本使用,这是一种跨语言的序列化协议，跟json、xml是一个意思
+- canalServer中netty对于tcp的包处理，固定包头+包体  FixedLengthFrameDecoder解码器的原理
+- 通信的流程client->protocol->tcp->server->tcp->protocol->client
+
+
+## 参考项目
+- java client : https://github.com/alibaba/canal/tree/master/client
+- php client: https://github.com/xingwenge/canal-php
 
 
 
