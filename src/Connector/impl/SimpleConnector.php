@@ -8,9 +8,11 @@ use PhpOne\CanalPHP\ClientIdentity;
 use PhpOne\CanalPHP\Config;
 use PhpOne\CanalPHP\Exception\CanalClientException;
 use PhpOne\CanalPHP\PacketUtil;
-use \Swoole\Client;
+use \Swoole\Client as SClient;
 use PhpOne\CanalPHP\Connector\Connector;
 use \PhpOne\CanalPHP\Message;
+use Swoole\Coroutine;
+use \Swoole\Coroutine\Client;
 
 /**
  * Class SimpleConnector
@@ -39,7 +41,14 @@ class SimpleConnector implements Connector
      */
     public function __construct(string $address, int $port, string $destination, string $username = "", String $password = "")
     {
-        $this->client = new Client(SWOOLE_SOCK_TCP);
+        if (Config::get("server.openCoroutine")) {
+            Coroutine::set(['hook_flags'=> Config::get("server.coHookFlags")]);
+
+            $this->client = new Client(SWOOLE_SOCK_TCP);
+        } else {
+            $this->client = new SClient(SWOOLE_SOCK_TCP);
+        }
+
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;

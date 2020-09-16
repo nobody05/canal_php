@@ -10,6 +10,7 @@ use Com\Alibaba\Otter\Canal\Protocol\EntryType;
 use Com\Alibaba\Otter\Canal\Protocol\EventType;
 use Com\Alibaba\Otter\Canal\Protocol\RowData;
 use PhpOne\CanalPHP\Exception\CanalClientException;
+use Swoole\Coroutine;
 
 class CanalClient
 {
@@ -20,47 +21,57 @@ class CanalClient
      */
     public function start()
     {
-        $connector = ConnectorFactory::getSimpleConnector(
-            Config::get("canal.server.address"), Config::get("canal.server.port"), Config::get("canal.server.destination"),
-            (string) Config::get("canal.server.username"), (string) Config::get("canal.server.password"));
-        try {
-            $connector->connect();
-            // 订阅表
-            $connector->subscribe(Config::get("canal.server.filter"));
-            $connector->rollback();
+        $startFun = function() {
+            $connector = ConnectorFactory::getSimpleConnector(
+                Config::get("canal.server.address"), Config::get("canal.server.port"),
+                Config::get("canal.server.destination"),
+                (string)Config::get("canal.server.username"), (string)Config::get("canal.server.password"));
+            try {
+                $connector->connect();
+                // 订阅表
+                $connector->subscribe(Config::get("canal.server.filter"));
+                $connector->rollback();
 
-            $currentEmpty = 0;
-            while ($currentEmpty < Config::get("canal.maxWhileCount")) {
-                $message = $connector->getWithoutAck(Config::get("canal.batchSize"));
-                $batchId = $message->getId();
-                if ($batchId > 0) {
-                    $currentEmpty = 0;
+                $currentEmpty = 0;
+                while ($currentEmpty < Config::get("canal.maxWhileCount")) {
+                    $message = $connector->getWithoutAck(Config::get("canal.batchSize"));
+                    $batchId = $message->getId();
+                    if ($batchId > 0) {
+                        $currentEmpty = 0;
 
-                    if (Config::get("canal.messageCallback")) {
-                        [$class, $func] = Config::get("canal.messageCallback");
-                        if (class_exists($class)) {
-                            call_user_func_array([$class, $func], [$message->getEntries()]);
+                        if (Config::get("canal.messageCallback")) {
+                            [$class, $func] = Config::get("canal.messageCallback");
+                            if (class_exists($class)) {
+                                call_user_func_array([$class, $func], [$message->getEntries()]);
+                            }
                         }
+
+                        if (Config::get("canal.openMessagePrint")) {
+                            $this->printEntry($message->getEntriesOri());
+                        }
+
+                        $connector->ack($batchId);
+                    } else {
+
+                        echo "no-message" . PHP_EOL;
+
+                        $currentEmpty++;
+
+                        sleep(1);
                     }
-
-                    if (Config::get("canal.openMessagePrint")) {
-                        $this->printEntry($message->getEntriesOri());
-                    }
-
-                    $connector->ack($batchId);
-                } else {
-
-                    echo "no-message". PHP_EOL;
-
-                    $currentEmpty++;
-
-                    sleep(1);
                 }
+            } catch (\Exception $e) {
+                throw new CanalClientException($e);
+            } finally {
+                $connector->disconnect();
             }
-        } catch (\Exception $e) {
-            throw new CanalClientException($e);
-        } finally {
-            $connector->disconnect();
+
+        };
+
+        if (Config::get("server.openCoroutine")) {
+            Coroutine::create($startFun);
+        } else {
+            $startFun();
         }
 
     }

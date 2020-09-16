@@ -9,6 +9,9 @@ return [
         "password" => "",
         "filter" => "test.user",// 订阅规则 db.table
         "clientId" => 1001,// 默认值
+        // 参见  https://wiki.swoole.com/#/runtime
+        "openCoroutine" => true, //是否开启协程
+        "coHookFlags" => "SWOOLE_HOOK_ALL", // 协程hook
     ],
     "batchSize" => 100,//每次拉取的数量值
     "maxWhileCount" => 100,
